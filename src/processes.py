@@ -1,3 +1,12 @@
+import simpy
+
+
+def driver(env, car):
+    """Driver process which wants to commence driving after 3 time units"""
+    yield env.timeout(3)
+    car.action.interrupt()
+
+
 class Car(object):
     def __init__(self, env):
         self.env = env
@@ -11,8 +20,12 @@ class Car(object):
             charge_duration = 5
 
             # hand control back to the sim engine until timeout reached
-            # (yield the process, and wait for it to finish - in case it requires another process to act on it)
-            yield self.env.process(self.charge(charge_duration))
+            # (yield the process, and wait for it to finish or is interrupted!)
+            try:
+                yield self.env.process(self.charge(charge_duration))
+            except simpy.Interrupt:
+                # when we receive an interrupt, stop charging and switch state
+                print("Charging interrupted! Hope there is enough charge...")
 
             print(f"Start driving at {self.env.now}")
             trip_duration = 2
